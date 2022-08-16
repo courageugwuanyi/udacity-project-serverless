@@ -1,46 +1,46 @@
-import { TodosAccess } from '../dataLayer/todosAcess'
-import { AttachmentUtils } from '../dataLayer/attachmentUtils';
+import { ToDoAccess} from '../dataLayer/todosAcess'
 import { TodoItem } from '../models/TodoItem'
 import { CreateTodoRequest } from '../requests/CreateTodoRequest'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
 import {TodoUpdate} from "../models/TodoUpdate"
-// import { createLogger } from '../utils/logger'
 import * as uuid from 'uuid'
-// import * as createError from 'http-errors'
 import { getUserId } from '../lambda/utils';
 
 // TODO: Implement businessLogic
- const toDosAccess = new TodosAccess ();
 
- export async function getAllTodos (): Promise <TodoItem []> {
-    return toDosAccess.getAllTodos();
+ const toDosAccess = new ToDoAccess();
+
+ export async function getAllToDos (): Promise <TodoItem []> {
+    return toDosAccess.getAllToDos();
  }
 
- export async function CreateTodo (
+ export async function CreateToDo (
     createTodoRequest: CreateTodoRequest,
     jwtToken: string
     ): Promise <TodoItem> {
         const todoId = uuid.v4()
         const userId = getUserId(jwtToken)
-        const s3Bucket = process.env.S3_BUCKET_IMAGES
+        const s3Bucket = process.env.S3_BUCKET_NAME
 
-        return toDosAccess.CreateTodo ({
-            todoId:todoId,
+        return toDosAccess.createToDo ({
+            todoId: todoId,
             userId: userId,
-            attachmentUrl:  `https://${s3Bucket}.s3.amazonaws.com/${todoId}`, 
+            attachmentUrl: `https://${s3Bucket}.s3.amazonaws.com/${todoId}`,
             createdAt: new Date().getTime().toString(),
-            done: false
+            done: false,
+            name: createTodoRequest.name,
+            dueDate: createTodoRequest.dueDate
         });
     }
 
-    export async function updateToDo(
+    export async function updateToDo (
         updateTodoRequest: UpdateTodoRequest, 
         todoId: string, 
         jwtToken: string): Promise<TodoUpdate> {
         const userId = getUserId(jwtToken);
 
         return toDosAccess.updateToDo (
-            updateTodoRequest, 
+            updateTodoRequest,
             todoId, 
             userId
         );
