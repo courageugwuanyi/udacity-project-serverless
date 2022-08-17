@@ -7,7 +7,7 @@ import { updateToDo } from '../../businessLogic/todos'
 import { UpdateTodoRequest } from '../../requests/UpdateTodoRequest'
 
 
-export const handler = middy(
+export const handler = middy (
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     
     const todoId = event.pathParameters.todoId
@@ -29,9 +29,9 @@ export const handler = middy(
       body: JSON.stringify({
           "item": toDoItem
       })
-    }
+    };
+  }
 )
-
 handler
   .use(httpErrorHandler())
   .use(

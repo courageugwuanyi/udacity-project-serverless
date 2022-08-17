@@ -4,14 +4,21 @@ import { CreateTodoRequest } from '../requests/CreateTodoRequest'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest'
 import {TodoUpdate} from "../models/TodoUpdate"
 import * as uuid from 'uuid'
-import { getUserId } from '../lambda/utils';
+import { parseUserId } from '../auth/utils'
 
 // TODO: Implement businessLogic
 
  const toDosAccess = new ToDoAccess();
 
- export async function getAllToDos (): Promise <TodoItem []> {
-    return toDosAccess.getAllToDos();
+
+ export async function getAllToDos (jwtToken:string): Promise <TodoItem []> {
+    const userID = parseUserId(jwtToken);
+    return toDosAccess.getAllToDos(userID);
+ }
+
+ export async function getAllToDosIndex (jwtToken:string, createdAtId:string): Promise <TodoItem []> {
+    const userID = parseUserId(jwtToken);
+    return toDosAccess.getAllToDosIndex(userID, createdAtId);
  }
 
  export async function CreateToDo (
@@ -19,7 +26,7 @@ import { getUserId } from '../lambda/utils';
     jwtToken: string
     ): Promise <TodoItem> {
         const todoId = uuid.v4()
-        const userId = getUserId(jwtToken)
+        const userId = parseUserId(jwtToken)
         const s3Bucket = process.env.S3_BUCKET_NAME
 
         return toDosAccess.createToDo ({
@@ -37,7 +44,7 @@ import { getUserId } from '../lambda/utils';
         updateTodoRequest: UpdateTodoRequest, 
         todoId: string, 
         jwtToken: string): Promise<TodoUpdate> {
-        const userId = getUserId(jwtToken);
+        const userId = parseUserId(jwtToken);
 
         return toDosAccess.updateToDo (
             updateTodoRequest,
@@ -49,7 +56,7 @@ import { getUserId } from '../lambda/utils';
     export async function deleteToDo(
         todoId: string, 
         jwtToken: string): Promise<string> {
-        const userId = getUserId(jwtToken);
+        const userId = parseUserId(jwtToken);
 
         return toDosAccess.deleteToDo(todoId, userId);
     }

@@ -24,8 +24,10 @@ export const handler = middy(
       },
       body: JSON.stringify({
           "item": toDoItem
-      }),
+      })
+    
     }
+  }
 )
 handler.use(
   cors({
