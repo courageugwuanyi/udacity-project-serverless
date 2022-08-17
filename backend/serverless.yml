@@ -1,7 +1,7 @@
 # TODO: Change the name of the org 
-org: courage-app
-app: serverless-todo-app
-service: serverless-todo-app
+org: korage
+app: serverless-app
+service: serverless-app
 
 plugins:
   - serverless-webpack
@@ -29,49 +29,47 @@ provider:
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
     S3_BUCKET_NAME: udacity-serverless-todo-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
+    PROJECT_NAME: serverless-todos
 
   logs:
     # Enable API Gateway logs
     restApi: true
 
-  # Defining Lambda Function Execution Roles
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - xray:PutTelemetryRecords
-        - xray:PutTraceSegments
-      Resource: "*"
-    - Effect: Allow
-      Action:
-        - dynamodb:PutItem
-        - dynamodb:Scan
-        - dynamodb:Query
-        - dynamodb:GetItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/${self:provider.environment.TODOS_CREATED_AT_INDEX}
-    - Effect: Allow
-      Action:
-        - s3:*
-      Resource: 'arn:aws:s3:::${self:provider.environment.S3_BUCKET_NAME}/*'
-
 custom:
   documentation:
     api:
       info:
-        title: serverless API
-        description: Serverless application for todos
+        version: '1.0.0'
+        title: serverless-api
+        description: serverless-app
     models:
       - name: CreateTodoRequest
-        contentType: application/json
-        schema: ${file(src/requests/CreateTodoRequest.ts)}
+        contentType: "application/json"
+        schema:
+          required:
+            - name
+            - dueDate
+          properties:
+            name:
+              minLength: 1
+              type: string
+            dueDate:
+              type: string
       - name: UpdateTodoRequest
-        contentType: application/json
-        schema: ${file(src/requests/UpdateTodoRequest.ts)}
+        contentType: "application/json"
+        schema:
+          required:
+            - name
+            - dueDate
+            - done
+          properties:
+            name:
+              minLength: 1
+              type: string
+            dueDate:
+              type: string
+            done:
+              type: boolean
 
 functions:
 
@@ -88,15 +86,17 @@ functions:
           path: todos
           cors: true
           authorizer: Auth
-
-  GetTodosIndex:
-    handler: src/lambda/http/getTodosIndex.handler
-    events:
-      - http:
-          method: get
-          path: todos/{createdAtId}
-          cors: true
-          authorizer: Auth
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-get-todo-role-${self:provider.stage}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+        Resource: 
+          - '*'
 
   # TODO: Configure this function - 
   # Provide iamRoleStatements property. Decide the Actions and AWS Resource. 
@@ -116,6 +116,17 @@ functions:
             description: Create a new todo
             requestModels:
               'application/json': CreateTodoRequest
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-create-todo-role-${self:provider.stage}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+        Resource: 
+          - '*'
         
   # TODO: Configure this function
   # Provide property for setting up CORS, Authorizer, iamRoleStatements, and request schemas
@@ -133,6 +144,17 @@ functions:
             description: Update todo item
             requestModels:
               'application/json': UpdateTodoRequest
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-update-todo-role-${self:provider.stage}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+        Resource: 
+          - '*'
 
   # TODO: Configure this function:DeleteTodo
   DeleteTodo:
@@ -143,6 +165,17 @@ functions:
           path: todos/{todoId}
           cors: true
           authorizer: Auth
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-delete-todo-role-${self:provider.stage}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+        Resource: 
+          - '*'
          
   # TODO: Configure this function:GenerateUploadURL
   GenerateUploadUrl:
@@ -153,6 +186,13 @@ functions:
           path: todos/{todoId}/attachment
           cors: true
           authorizer: Auth
+    iamRoleStatementsName: ${self:provider.environment.PROJECT_NAME}-s3-upload-role-${self:provider.stage}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:*
+          - xray:PutTraceSegments 
+        Resource: arn:aws:s3:::${self:provider.environment.S3_BUCKET_NAME}/*
 
 resources:
   Resources:
@@ -162,24 +202,24 @@ resources:
     GatewayResponseDefault4XX:
       Type: AWS::ApiGateway::GatewayResponse
       Properties:
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST,DELETE,PATCH,PUT'"
-      ResponseType: DEFAULT_4XX
-      RestApiId:
-        Ref: ApiGatewayRestApi
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST,DELETE,PATCH,PUT'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
 
     GatewayResponseDefault5XX:
       Type: AWS::ApiGateway::GatewayResponse
       Properties:
-      ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST,DELETE,PATCH,PUT'"
-      ResponseType: DEFAULT_5XX
-      RestApiId:
-        Ref: ApiGatewayRestApi
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST,DELETE,PATCH,PUT'"
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
     
     # TODO: Create a DynamoDB table with local secondary index and a composite key
     TodosTable:
@@ -191,23 +231,21 @@ resources:
           AttributeType: S
         - AttributeName: todoId
           AttributeType: S
-        - AttributeName: createdAt
-          AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
           - AttributeName: todoId
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-        LocalSecondaryIndexes:
-        - IndexName: ${self:provider.environment.TODOS_CREATED_AT_INDEX}
-          KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: createdAt
-            KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
+        # LocalSecondaryIndexes:
+        # - IndexName: ${self:provider.environment.TODOS_CREATED_AT_INDEX}
+        #   KeySchema:
+        #   - AttributeName: userId
+        #     KeyType: HASH
+        #   - AttributeName: createdAt
+        #     KeyType: RANGE
+        #   Projection:
+        #     ProjectionType: ALL
 
     RequestBodyValidator:
       Type: AWS::ApiGateway::RequestValidator

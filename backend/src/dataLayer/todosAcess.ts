@@ -11,7 +11,6 @@ export class ToDoAccess {
         private readonly docClient: DocumentClient = new AWS.DynamoDB.DocumentClient(),
         private readonly s3Client: Types = new AWS.S3({ signatureVersion: 'v4' }),
         private readonly todoTable = process.env.TODOS_TABLE,
-        private readonly createdAtIndex = process.env.TODOS_CREATED_AT_INDEX,
         private readonly s3Bucket = process.env.S3_BUCKET_NAME) {
     }
 
@@ -30,27 +29,6 @@ export class ToDoAccess {
         }).promise();
         const items = result.Items;
         return items as TodoItem[];
-    };
-
-    async getAllToDosIndex (userId:string, createdAtId:string): Promise<TodoItem[]> {
-        console.log("Getting all todos");
-
-        if (userId) {
-            const result = await this.docClient.query({
-                TableName: this.todoTable,
-                IndexName: this.createdAtIndex,
-                KeyConditionExpression: "#createdAt = :createdAtId",
-                ExpressionAttributeNames: {
-                    "#createdAt": "createdAtId"
-                },
-                ExpressionAttributeValues: {
-                    ":createdAtId": createdAtId
-                }
-            }).promise();
-            const items = result.Items;
-            return items as TodoItem[];
-        }
-        
     };
 
     async createToDo(todoItem: TodoItem): Promise<TodoItem> {

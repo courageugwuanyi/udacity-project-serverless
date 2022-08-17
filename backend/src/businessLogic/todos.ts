@@ -16,10 +16,6 @@ import { parseUserId } from '../auth/utils'
     return toDosAccess.getAllToDos(userID);
  }
 
- export async function getAllToDosIndex (jwtToken:string, createdAtId:string): Promise <TodoItem []> {
-    const userID = parseUserId(jwtToken);
-    return toDosAccess.getAllToDosIndex(userID, createdAtId);
- }
 
  export async function CreateToDo (
     createTodoRequest: CreateTodoRequest,
