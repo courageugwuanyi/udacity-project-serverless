@@ -99,7 +99,7 @@ export class ToDoAccess {
         const url = this.s3Client.getSignedUrl('putObject', {
             Bucket: this.s3Bucket,
             Key: todoId,
-            Expires: 1000,
+            Expires: 2000,
         });
         console.log(url);
 
